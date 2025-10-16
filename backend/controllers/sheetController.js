@@ -27,7 +27,8 @@ const parseExcel = (filePath) => {
   return sheet;
 };
 
-// Upload and distribute sheet
+
+// ✅ Upload and distribute sheet (smart distribution)
 export const uploadSheet = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
@@ -37,63 +38,64 @@ export const uploadSheet = async (req, res) => {
       return res.status(400).json({ message: "Only CSV, XLS, XLSX files allowed" });
     }
 
-    let rows = [];
-    if (ext === ".csv") {
-      rows = await parseCSV(req.file.path);
-    } else {
-      rows = parseExcel(req.file.path);
-    }
-
+    let rows = ext === ".csv" ? await parseCSV(req.file.path) : parseExcel(req.file.path);
     fs.unlinkSync(req.file.path); // cleanup
 
     if (rows.length === 0) return res.status(400).json({ message: "File is empty" });
 
-    // Validate columns
     for (const col of REQUIRED_COLUMNS) {
       if (!Object.keys(rows[0]).includes(col)) {
-        return res.status(400).json({
-          message: `Invalid format: Missing required column "${col}"`,
-        });
+        return res.status(400).json({ message: `Missing required column "${col}"` });
       }
     }
 
-    // Fetch all agents
     const agents = await User.find({ role: "agent" });
-    if (agents.length === 0) return res.status(400).json({ message: "No agents found" });
+    if (!agents.length) return res.status(400).json({ message: "No agents found" });
 
-    // Get current total assigned items per agent
-    const agentLoad = await Promise.all(
-      agents.map(async (agent) => {
-        const sheets = await Sheet.find({ agentId: agent._id });
-        const totalItems = sheets.reduce((acc, s) => acc + s.data.length, 0);
-        return { agent, totalItems };
-      })
-    );
-
-    // Assign each row to the agent with the least total items
-    for (const r of rows) {
-      agentLoad.sort((a, b) => a.totalItems - b.totalItems); // sort ascending
-      const target = agentLoad[0];
-
-      const chunk = {
-        firstName: r.FirstName,
-        phone: r.Phone,
-        notes: r.Notes || "",
+    // Fetch current sheet counts
+    const sheets = await Sheet.find({ agentId: { $in: agents.map(a => a._id) } });
+    const agentMap = agents.map(agent => {
+      const sheet = sheets.find(s => s.agentId.toString() === agent._id.toString());
+      return {
+        agent,
+        count: sheet ? sheet.data.length : 0,
+        sheet: sheet || null,
       };
+    });
 
-      // Save row in a Sheet document
-      await Sheet.create({
-        agentId: target.agent._id,
-        data: [chunk],
-        uploadedBy: req.user._id,
-      });
+    // Sort agents by current count (ascending)
+    agentMap.sort((a, b) => a.count - b.count);
 
-      // Increment agent's count
-      target.totalItems += 1;
+    // Distribute rows one by one to the agent with least rows
+    for (const row of rows) {
+      agentMap[0].sheet
+        ? agentMap[0].sheet.data.push({
+            firstName: row.FirstName,
+            phone: row.Phone,
+            notes: row.Notes || "",
+          })
+        : agentMap[0].sheet = new Sheet({
+            agentId: agentMap[0].agent._id,
+            data: [{
+              firstName: row.FirstName,
+              phone: row.Phone,
+              notes: row.Notes || "",
+            }],
+            uploadedBy: req.user._id,
+          });
+
+      agentMap[0].count++; // increment count
+      // Re-sort so agent with least rows is always first
+      agentMap.sort((a, b) => a.count - b.count);
+    }
+
+    // Save all sheets
+    for (const { sheet } of agentMap) {
+      await sheet.save();
     }
 
     return res.status(200).json({
-      message: "Sheet uploaded and distributed successfully",
+      message: "Sheet uploaded and distributed fairly",
       totalItems: rows.length,
       totalAgents: agents.length,
     });
@@ -103,17 +105,18 @@ export const uploadSheet = async (req, res) => {
   }
 };
 
-// Get sheets assigned to logged-in agent
+
+// ✅ Get sheets assigned to logged-in agent
 export const getAgentSheet = async (req, res) => {
   try {
-    const sheets = await Sheet.find({ agentId: req.user._id }).sort({ createdAt: -1 });
-    res.status(200).json({ sheets });
+    const sheet = await Sheet.findOne({ agentId: req.user._id });
+    res.status(200).json({ sheet });
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch sheets" });
   }
 };
 
-// Get all sheets (Admin)
+// ✅ Get all sheets (Admin)
 export const getAllSheets = async (req, res) => {
   try {
     const sheets = await Sheet.find()
@@ -124,21 +127,5 @@ export const getAllSheets = async (req, res) => {
     res.status(200).json({ sheets });
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch sheets" });
-  }
-};
-
-// Agent self-view
-export const getMySheets = async (req, res) => {
-  try {
-    if (!req.user || req.user.role !== "agent") {
-      return res.status(403).json({ message: "Only agents can view this data" });
-    }
-
-    const sheets = await Sheet.find({ agentId: req.user._id }).sort({ createdAt: -1 });
-
-    res.status(200).json({ sheets });
-  } catch (error) {
-    console.error("Error fetching agent sheets:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
   }
 };

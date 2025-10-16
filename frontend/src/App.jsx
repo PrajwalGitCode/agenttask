@@ -17,27 +17,16 @@ function App() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // ✅ Load user and restore last visited route safely
+  // Restore user from localStorage
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
-    const token = localStorage.getItem("token");
-    const lastRoute = localStorage.getItem("lastRoute");
-
-    if (storedUser && token) {
-      const parsed = JSON.parse(storedUser);
-      parsed.token = token;
-      setUser(parsed);
-
-      // Redirect only once user is set and not already on lastRoute
-      if (lastRoute && lastRoute !== "/" && location.pathname === "/") {
-        navigate(lastRoute, { replace: true });
-      }
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
     }
-
     setIsLoading(false);
   }, []);
 
-  // ✅ Save current route for reload persistence
+  // Save current route for persistence
   useEffect(() => {
     if (user) {
       localStorage.setItem("lastRoute", location.pathname);
@@ -48,7 +37,6 @@ function App() {
     const userWithToken = { ...userData, token };
     setUser(userWithToken);
     localStorage.setItem("user", JSON.stringify(userWithToken));
-    localStorage.setItem("token", token);
   };
 
   const handleLogout = () => {
@@ -64,8 +52,7 @@ function App() {
   return (
     <div className="App min-h-screen bg-gray-50">
       {user && <Navbar user={user} onLogout={handleLogout} />}
-
-      <div className="pt-16">
+      <div className={user ? "pt-16" : ""}>
         <Routes>
           {/* Root */}
           <Route
@@ -79,37 +66,25 @@ function App() {
             }
           />
 
-          {/* Agent */}
+          {/* Agent Routes */}
           <Route
             path="/agent"
             element={
-              user?.role === "agent" ? (
-                <AgentDashboard user={user} onLogout={handleLogout} />
-              ) : (
-                <Navigate to="/" replace />
-              )
+              user?.role === "agent" ? <AgentDashboard user={user} /> : <Navigate to="/" replace />
             }
           />
           <Route
             path="/agent/view-sheet"
             element={
-              user?.role === "agent" ? (
-                <AgentViewSheet user={user} />
-              ) : (
-                <Navigate to="/" replace />
-              )
+              user?.role === "agent" ? <AgentViewSheet user={user} /> : <Navigate to="/" replace />
             }
           />
 
-          {/* Admin */}
+          {/* Admin Routes */}
           <Route
             path="/admin"
             element={
-              user?.role === "admin" ? (
-                <AdminDashboard user={user} onLogout={handleLogout} />
-              ) : (
-                <Navigate to="/" replace />
-              )
+              user?.role === "admin" ? <AdminDashboard user={user} /> : <Navigate to="/" replace />
             }
           />
           <Route
@@ -127,12 +102,14 @@ function App() {
           <Route
             path="/admin/add-agent"
             element={
-              user?.role === "admin" ? <AddAgent token={user?.token} /> : <Navigate to="/" replace />
+              user?.role === "admin" ? <AddAgent token={user.token} /> : <Navigate to="/" replace />
             }
           />
           <Route
             path="/admin/view-agents"
-            element={<ViewAgents token={user?.token} />}
+            element={
+              user?.role === "admin" ? <ViewAgents token={user.token} /> : <Navigate to="/" replace />
+            }
           />
 
           {/* Fallback */}
