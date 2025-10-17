@@ -12,7 +12,7 @@ dotenv.config();
 const app = express();
 
 app.use(cors({
-  origin: ["http://localhost:5173"], // your Netlify frontend
+  origin: ["https://fabulous-puppy-e9982f.netlify.app"], // your Netlify frontend
   credentials: true
 }));
 app.use(express.json());
