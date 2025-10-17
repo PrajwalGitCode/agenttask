@@ -1,7 +1,7 @@
 // src/components/AddAgent.jsx
 import React, { useState } from "react";
 import axios from "axios";
-
+import { addAgent } from "../api";
 export default function AddAgent({ token }) {
   const [agentData, setAgentData] = useState({
     name: "",
@@ -14,11 +14,7 @@ export default function AddAgent({ token }) {
   const handleAddAgent = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post(
-        "http://localhost:5000/api/admin/add-agent",
-        agentData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await addAgent(agentData);
       setMessage("✅ Agent added successfully!");
       setAgentData({ name: "", phone: "", email: "", password: "" });
     } catch (err) {

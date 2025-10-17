@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
-import axios from "axios";
+import { getAgents, updateAgent, deleteAgent } from "../api";
 
-export default function ViewAgents({ token }) {
+export default function ViewAgents() {
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editingAgent, setEditingAgent] = useState(null);
@@ -13,23 +13,15 @@ export default function ViewAgents({ token }) {
   });
   const [message, setMessage] = useState("");
 
-  // ✅ Unified message helper
   const showMessage = (text, duration = 3000) => {
     setMessage(text);
     setTimeout(() => setMessage(""), duration);
   };
 
-  // ✅ Fast initial load (shows instantly)
   const fetchAgents = useCallback(async () => {
-    if (!token) return;
     setLoading(true);
-
     try {
-      const res = await axios.get("http://localhost:5000/api/admin/agents", {
-        headers: { Authorization: `Bearer ${token}` },
-        timeout: 5000,
-      });
-
+      const res = await getAgents();
       setAgents(res.data.agents || []);
     } catch (err) {
       console.error("Error fetching agents:", err);
@@ -37,14 +29,12 @@ export default function ViewAgents({ token }) {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
-  // ✅ Run once on mount
   useEffect(() => {
     fetchAgents();
   }, [fetchAgents]);
 
-  // ✅ Handle edit
   const handleEditAgent = (agent) => {
     setEditingAgent(agent);
     setAgentData({
@@ -55,23 +45,16 @@ export default function ViewAgents({ token }) {
     });
   };
 
-  // ✅ Handle update
   const handleUpdateAgent = async (e) => {
     e.preventDefault();
     try {
       const payload = { ...agentData };
       if (!agentData.password.trim()) delete payload.password;
 
-      const res = await axios.put(
-        `http://localhost:5000/api/admin/agents/${editingAgent._id}`,
-        payload,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
+      const res = await updateAgent(editingAgent._id, payload);
       setAgents((prev) =>
         prev.map((a) => (a._id === editingAgent._id ? res.data.agent : a))
       );
-
       showMessage("✅ Agent updated successfully!");
       setEditingAgent(null);
       setAgentData({ name: "", phone: "", email: "", password: "" });
@@ -81,13 +64,10 @@ export default function ViewAgents({ token }) {
     }
   };
 
-  // ✅ Handle delete
   const handleDeleteAgent = async (id) => {
     if (!window.confirm("Are you sure you want to delete this agent?")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/admin/agents/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await deleteAgent(id);
       setAgents((prev) => prev.filter((a) => a._id !== id));
       showMessage("🗑️ Agent deleted successfully!");
     } catch (err) {
@@ -100,7 +80,7 @@ export default function ViewAgents({ token }) {
     <div className="max-w-3xl mx-auto bg-white shadow p-6 rounded-lg mt-10">
       <h2 className="text-2xl font-bold mb-6 text-center">👥 Agents List</h2>
 
-      {/* ✅ Header bar */}
+      {/* Header bar */}
       <div className="flex justify-between items-center mb-4">
         <p className="text-sm text-gray-500">
           Total Agents: <b>{agents.length}</b>
@@ -116,12 +96,8 @@ export default function ViewAgents({ token }) {
         </button>
       </div>
 
-      {/* ✅ Message */}
-      {message && (
-        <p className="text-center text-sm text-gray-700 mb-4">{message}</p>
-      )}
+      {message && <p className="text-center text-sm text-gray-700 mb-4">{message}</p>}
 
-      {/* ✅ Loading shimmer */}
       {loading ? (
         <div className="space-y-3 animate-pulse">
           {[1, 2, 3].map((i) => (
@@ -140,9 +116,7 @@ export default function ViewAgents({ token }) {
               <div>
                 <p className="font-semibold text-gray-800">{a.name}</p>
                 <p className="text-gray-600 text-sm">{a.email}</p>
-                {a.phone && (
-                  <p className="text-gray-500 text-xs">📞 {a.phone}</p>
-                )}
+                {a.phone && <p className="text-gray-500 text-xs">📞 {a.phone}</p>}
               </div>
               <div className="flex gap-2">
                 <button
@@ -163,7 +137,7 @@ export default function ViewAgents({ token }) {
         </ul>
       )}
 
-      {/* ✅ Edit Form */}
+      {/* Edit Form */}
       {editingAgent && (
         <form
           onSubmit={handleUpdateAgent}
@@ -172,15 +146,12 @@ export default function ViewAgents({ token }) {
           <h3 className="font-semibold text-lg text-gray-700 mb-2">
             ✏️ Editing {editingAgent.name}
           </h3>
-
           <input
             type="text"
             placeholder="Name"
             className="w-full border p-2 rounded"
             value={agentData.name}
-            onChange={(e) =>
-              setAgentData({ ...agentData, name: e.target.value })
-            }
+            onChange={(e) => setAgentData({ ...agentData, name: e.target.value })}
             required
           />
           <input
@@ -188,18 +159,14 @@ export default function ViewAgents({ token }) {
             placeholder="Phone"
             className="w-full border p-2 rounded"
             value={agentData.phone}
-            onChange={(e) =>
-              setAgentData({ ...agentData, phone: e.target.value })
-            }
+            onChange={(e) => setAgentData({ ...agentData, phone: e.target.value })}
           />
           <input
             type="email"
             placeholder="Email"
             className="w-full border p-2 rounded"
             value={agentData.email}
-            onChange={(e) =>
-              setAgentData({ ...agentData, email: e.target.value })
-            }
+            onChange={(e) => setAgentData({ ...agentData, email: e.target.value })}
             required
           />
           <input
@@ -207,11 +174,8 @@ export default function ViewAgents({ token }) {
             placeholder="New Password (leave blank to keep same)"
             className="w-full border p-2 rounded"
             value={agentData.password}
-            onChange={(e) =>
-              setAgentData({ ...agentData, password: e.target.value })
-            }
+            onChange={(e) => setAgentData({ ...agentData, password: e.target.value })}
           />
-
           <button
             type="submit"
             className="w-full bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600"

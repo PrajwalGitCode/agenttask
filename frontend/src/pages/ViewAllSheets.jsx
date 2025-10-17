@@ -1,6 +1,5 @@
-// src/pages/ViewAllSheets.jsx
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import { getAllSheets } from "../api";
 
 export default function ViewAllSheets({ user }) {
   const [sheets, setSheets] = useState([]);
@@ -10,10 +9,8 @@ export default function ViewAllSheets({ user }) {
   useEffect(() => {
     const fetchSheets = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/sheets/allsheet", {
-          headers: { Authorization: `Bearer ${user.token}` },
-        });
-        setSheets(res.data.sheets);
+        const data = await getAllSheets(user.token);
+        setSheets(data.sheets || []);
       } catch (err) {
         setMessage("❌ Failed to fetch sheet details.");
       } finally {

@@ -1,6 +1,5 @@
-// src/pages/UploadSheet.jsx
 import React, { useState } from "react";
-import axios from "axios";
+import { uploadSheet } from "../api"; // ✅ import from api.js
 
 export default function UploadSheet({ user }) {
   const [file, setFile] = useState(null);
@@ -25,7 +24,7 @@ export default function UploadSheet({ user }) {
     setFile(selected);
   };
 
-  // ✅ Upload handler
+  // ✅ Upload handler (using api.js)
   const handleUpload = async (e) => {
     e.preventDefault();
     if (!file) {
@@ -40,13 +39,7 @@ export default function UploadSheet({ user }) {
     formData.append("file", file);
 
     try {
-      const res = await axios.post("http://localhost:5000/api/sheets/upload", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${user.token}`,
-        },
-      });
-
+      const res = await uploadSheet(formData); // ✅ use api.js
       setMessage(`✅ ${res.data.message}`);
       setFile(null);
     } catch (err) {
@@ -76,22 +69,24 @@ export default function UploadSheet({ user }) {
         <button
           type="submit"
           disabled={uploading}
-          className={`w-full p-2 rounded text-white ${uploading
+          className={`w-full p-2 rounded text-white ${
+            uploading
               ? "bg-gray-400 cursor-not-allowed"
               : "bg-blue-600 hover:bg-blue-700"
-            }`}
+          }`}
         >
           {uploading ? "Uploading..." : "Upload"}
         </button>
 
         {message && (
           <p
-            className={`text-center text-sm ${message.includes("✅")
+            className={`text-center text-sm ${
+              message.includes("✅")
                 ? "text-green-600"
                 : message.includes("❌")
-                  ? "text-red-600"
-                  : "text-yellow-600"
-              }`}
+                ? "text-red-600"
+                : "text-yellow-600"
+            }`}
           >
             {message}
           </p>
