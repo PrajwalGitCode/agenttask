@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
-import { UserPlus, Users, Upload, FileSpreadsheet, LogOut, Menu, X } from "lucide-react";
+import { UserPlus, Users, Upload, FileSpreadsheet, Menu, X } from "lucide-react";
 import AddAgent from "./AddAgent";
 import ViewAgents from "./ViewAgents";
 import UploadSheet from "../pages/UploadSheet";
 import ViewAllSheets from "../pages/ViewAllSheets";
 import api from "../api";
 
-export default function AdminDashboard({ user, onLogout }) {
+export default function AdminDashboard({ user }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -36,20 +36,15 @@ export default function AdminDashboard({ user, onLogout }) {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Use the stats endpoints added in backend: /api/stats/agents and /api/stats/sheets
         const [agentsRes, sheetsRes] = await Promise.all([
           api.get("/stats/agents"),
           api.get("/stats/sheets"),
         ]);
 
-        const totalAgents = typeof agentsRes.data.count === "number" ? agentsRes.data.count : 0;
-        const activeSheets = typeof sheetsRes.data.totalSheets === "number" ? sheetsRes.data.totalSheets : 0;
-        const totalRows = typeof sheetsRes.data.totalRows === "number" ? sheetsRes.data.totalRows : 0;
-
         setStats({
-          totalAgents,
-          activeSheets,
-          totalRows,
+          totalAgents: typeof agentsRes.data.count === "number" ? agentsRes.data.count : 0,
+          activeSheets: typeof sheetsRes.data.totalSheets === "number" ? sheetsRes.data.totalSheets : 0,
+          totalRows: typeof sheetsRes.data.totalRows === "number" ? sheetsRes.data.totalRows : 0,
         });
       } catch (err) {
         console.error("Failed to fetch stats:", err?.response?.data || err.message || err);
@@ -100,14 +95,6 @@ export default function AdminDashboard({ user, onLogout }) {
               </button>
             ))}
           </nav>
-
-          {/* Logout */}
-          <div className="p-4 border-t border-gray-100">
-            <button onClick={onLogout} className="w-full flex items-center space-x-3 px-4 py-3 text-gray-600 hover:bg-red-50 hover:text-red-700 rounded-xl transition-all duration-200">
-              <div className="p-2 bg-gray-100 rounded-lg"><LogOut size={18} /></div>
-              <span className="text-sm font-medium">Log Out</span>
-            </button>
-          </div>
         </div>
       </div>
 
