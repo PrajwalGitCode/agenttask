@@ -46,7 +46,12 @@ export default function ViewAgents() {
 
   const startEditing = (agent) => {
     setEditingId(agent._id);
-    setEditData({ name: agent.name, email: agent.email, phone: agent.phone || "" });
+    setEditData({
+      name: agent.name,
+      email: agent.email,
+      phone: agent.phone || "",
+      password: "" // For password editing
+    });
   };
 
   const cancelEditing = () => {
@@ -57,6 +62,9 @@ export default function ViewAgents() {
   const saveEdit = async (id) => {
     try {
       const payload = { ...editData };
+      // Remove password field if empty to avoid overwriting
+      if (!payload.password) delete payload.password;
+
       const res = await updateAgent(id, payload);
       setAgents((prev) => prev.map((a) => (a._id === id ? res.data.agent : a)));
       showMessage("✅ Agent updated successfully!");
@@ -103,17 +111,18 @@ export default function ViewAgents() {
               <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Name</th>
               <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Email</th>
               <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Phone</th>
+              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Password</th>
               <th className="px-6 py-3 text-center text-sm font-medium text-gray-700">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {loading ? (
               <tr>
-                <td colSpan={4} className="text-center py-10 text-gray-400">Loading...</td>
+                <td colSpan={5} className="text-center py-10 text-gray-400">Loading...</td>
               </tr>
             ) : filteredAgents.length === 0 ? (
               <tr>
-                <td colSpan={4} className="text-center py-10 text-gray-400">No agents found.</td>
+                <td colSpan={5} className="text-center py-10 text-gray-400">No agents found.</td>
               </tr>
             ) : (
               filteredAgents.map((agent) => (
@@ -155,6 +164,19 @@ export default function ViewAgents() {
                       />
                     ) : (
                       agent.phone || "-"
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    {editingId === agent._id ? (
+                      <input
+                        type="password"
+                        className="w-full border p-1 rounded"
+                        placeholder="Enter new password"
+                        value={editData.password || ""}
+                        onChange={(e) => setEditData({ ...editData, password: e.target.value })}
+                      />
+                    ) : (
+                      "••••••••"
                     )}
                   </td>
                   <td className="px-6 py-4 flex justify-center gap-3">
