@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { uploadSheet } from "../api"; // ✅ API usage remains
+import { uploadSheet } from "../api";
 import { UploadCloud, XCircle } from "lucide-react";
 
 export default function UploadSheet({ user }) {

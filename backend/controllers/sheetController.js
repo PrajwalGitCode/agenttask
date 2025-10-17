@@ -8,7 +8,7 @@ import path from "path";
 
 const REQUIRED_COLUMNS = ["FirstName", "Phone", "Notes"];
 
-// ✅ Helper: parse CSV
+// Helper: parse CSV
 const parseCSV = (filePath) =>
   new Promise((resolve, reject) => {
     const results = [];
@@ -19,7 +19,7 @@ const parseCSV = (filePath) =>
       .on("error", reject);
   });
 
-// ✅ Helper: parse XLS/XLSX
+// Helper: parse XLS/XLSX
 const parseExcel = (filePath) => {
   const workbook = XLSX.readFile(filePath);
   const sheetName = workbook.SheetNames[0];
@@ -28,7 +28,7 @@ const parseExcel = (filePath) => {
 };
 
 
-// ✅ Upload and distribute sheet (smart distribution)
+//  Upload and distribute sheet (smart distribution)
 export const uploadSheet = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
@@ -84,8 +84,7 @@ export const uploadSheet = async (req, res) => {
             uploadedBy: req.user._id,
           });
 
-      agentMap[0].count++; // increment count
-      // Re-sort so agent with least rows is always first
+      agentMap[0].count++; 
       agentMap.sort((a, b) => a.count - b.count);
     }
 
@@ -106,7 +105,7 @@ export const uploadSheet = async (req, res) => {
 };
 
 
-// ✅ Get sheets assigned to logged-in agent
+// Get sheets assigned to logged-in agent
 export const getAgentSheet = async (req, res) => {
   try {
     const sheet = await Sheet.findOne({ agentId: req.user._id });
@@ -116,7 +115,7 @@ export const getAgentSheet = async (req, res) => {
   }
 };
 
-// ✅ Get all sheets (Admin)
+// Get all sheets (Admin)
 export const getAllSheets = async (req, res) => {
   try {
     const sheets = await Sheet.find()

@@ -1,6 +1,6 @@
 import User from "../models/User.js";
 
-// ✅ Add agent (admin only)
+// Add agent (admin only)
 export const addAgent = async (req, res) => {
   try {
     if (!req.user) return res.status(401).json({ message: "Not authorized" });
@@ -21,7 +21,7 @@ export const addAgent = async (req, res) => {
       name,
       phone,
       email,
-      password, // ✅ stored directly (no bcrypt)
+      password,
       role: "agent",
     });
 
@@ -41,7 +41,7 @@ export const addAgent = async (req, res) => {
   }
 };
 
-// ✅ Get all agents
+// Get all agents
 export const getAgents = async (req, res) => {
   try {
     if (!req.user) return res.status(401).json({ message: "Not authorized" });
@@ -57,7 +57,7 @@ export const getAgents = async (req, res) => {
   }
 };
 
-// ✅ Update agent
+// Update agent
 export const updateAgent = async (req, res) => {
   try {
     if (!req.user) return res.status(401).json({ message: "Not authorized" });
@@ -76,8 +76,7 @@ export const updateAgent = async (req, res) => {
     if (name) agent.name = name;
     if (phone) agent.phone = phone;
     if (email) agent.email = email;
-    if (password) agent.password = password; // ✅ directly update plain password
-
+    if (password) agent.password = password; 
     await agent.save();
 
     const { password: pwd, ...agentData } = agent._doc;
@@ -87,7 +86,7 @@ export const updateAgent = async (req, res) => {
   }
 };
 
-// ✅ Delete agent
+//  Delete agent
 export const deleteAgent = async (req, res) => {
   try {
     if (!req.user) return res.status(401).json({ message: "Not authorized" });

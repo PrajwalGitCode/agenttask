@@ -30,14 +30,14 @@ const Signup = ({ onSignup, onSwitchToLogin }) => {
         password: formData.password,
       });
 
-      // ✅ Save token & user
+      //  Save token & user
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("user", JSON.stringify(response.data.user));
 
-      // ✅ Set token globally for axios
+      // Set token globally for axios
       setAuthToken(response.data.token);
 
-      // ✅ Notify parent (App.js or Dashboard wrapper)
+      // Notify parent (App.js or Dashboard wrapper)
       onSignup(response.data.user, response.data.token);
     } catch (err) {
       setError(err.response?.data?.message || "Signup failed");

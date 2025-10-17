@@ -12,7 +12,7 @@ dotenv.config();
 const app = express();
 
 app.use(cors({
-  origin: ["https://fabulous-puppy-e9982f.netlify.app"], // your Netlify frontend
+  origin: ["https://fabulous-puppy-e9982f.netlify.app"], 
   credentials: true
 }));
 app.use(express.json());

@@ -35,7 +35,6 @@ const Login = ({ onLogin }) => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-white p-4">
       <div className="relative w-full max-w-md p-10 bg-white rounded-3xl shadow-2xl border border-gray-200">
-        {/* Blue decorative circles */}
         <div className="absolute -top-10 -left-10 w-24 h-24 bg-blue-300 rounded-full opacity-40 animate-pulse"></div>
         <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-blue-400 rounded-full opacity-30 animate-pulse"></div>
 

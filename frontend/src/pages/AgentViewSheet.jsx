@@ -62,7 +62,6 @@ export default function AgentViewSheet({ user }) {
               <p className="text-xl font-semibold text-blue-700 flex items-center gap-2">
                 <Users size={20} /> Assigned Sheet #{idx + 1}
               </p>
-              {/* Optionally show uploaded date */}
             </div>
 
             <p className="text-gray-500 mb-3">

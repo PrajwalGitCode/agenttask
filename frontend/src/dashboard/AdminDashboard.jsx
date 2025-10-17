@@ -1,195 +1,223 @@
-import React, { useState, useEffect } from "react";
-import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
-import { UserPlus, Users, Upload, FileSpreadsheet, Menu, X } from "lucide-react";
-import AddAgent from "./AddAgent";
-import ViewAgents from "./ViewAgents";
-import UploadSheet from "../pages/UploadSheet";
-import ViewAllSheets from "../pages/ViewAllSheets";
-import api from "../api";
+import React, { useState, useEffect, useCallback } from "react";
+import { getAgents, updateAgent, deleteAgent } from "../api";
+import { Edit2, Trash2, Check, X, Search } from "lucide-react";
 
-export default function AdminDashboard({ user }) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+export default function ViewAgents() {
+  const [agents, setAgents] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editData, setEditData] = useState({});
+  const [message, setMessage] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const actions = [
-    { label: "Add Agent", path: "add-agent", icon: <UserPlus size={24} />, description: "Register new sales agents" },
-    { label: "View Agents", path: "view-agents", icon: <Users size={24} />, description: "Manage existing agents" },
-    { label: "Upload Sheet", path: "upload", icon: <Upload size={24} />, description: "Import lead sheets" },
-    { label: "View Sheets", path: "view-sheets", icon: <FileSpreadsheet size={24} />, description: "Monitor uploaded sheets" },
-  ];
-
-  const getPageTitle = () => {
-    const currentAction = actions.find(action => location.pathname.includes(action.path));
-    return currentAction ? currentAction.label : "Dashboard Overview";
+  const showMessage = (text, duration = 3000) => {
+    setMessage(text);
+    setTimeout(() => setMessage(""), duration);
   };
 
-  const isOverview = location.pathname === "/admin" || location.pathname === "/admin/";
-
-  // Dynamic stats
-  const [stats, setStats] = useState({
-    totalAgents: 0,
-    activeSheets: 0,
-    totalRows: 0,
-  });
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const [agentsRes, sheetsRes] = await Promise.all([
-          api.get("/stats/agents"),
-          api.get("/stats/sheets"),
-        ]);
-
-        setStats({
-          totalAgents: typeof agentsRes.data.count === "number" ? agentsRes.data.count : 0,
-          activeSheets: typeof sheetsRes.data.totalSheets === "number" ? sheetsRes.data.totalSheets : 0,
-          totalRows: typeof sheetsRes.data.totalRows === "number" ? sheetsRes.data.totalRows : 0,
-        });
-      } catch (err) {
-        console.error("Failed to fetch stats:", err?.response?.data || err.message || err);
-      }
-    };
-    fetchStats();
+  const fetchAgents = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await getAgents();
+      setAgents(res.data.agents || []);
+    } catch (err) {
+      console.error(err);
+      showMessage("❌ Failed to fetch agents.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    fetchAgents();
+  }, [fetchAgents]);
+
+  const handleDeleteAgent = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this agent?")) return;
+    try {
+      await deleteAgent(id);
+      setAgents((prev) => prev.filter((a) => a._id !== id));
+      showMessage("🗑️ Agent deleted successfully!");
+    } catch (err) {
+      console.error(err);
+      showMessage("❌ Failed to delete agent.");
+    }
+  };
+
+  const startEditing = (agent) => {
+    setEditingId(agent._id);
+    setEditData({
+      name: agent.name,
+      email: agent.email,
+      phone: agent.phone || "",
+      password: "" // For password editing
+    });
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditData({});
+  };
+
+  const saveEdit = async (id) => {
+    try {
+      const payload = { ...editData };
+      // Remove password field if empty to avoid overwriting
+      if (!payload.password) delete payload.password;
+
+      const res = await updateAgent(id, payload);
+      setAgents((prev) => prev.map((a) => (a._id === id ? res.data.agent : a)));
+      showMessage("✅ Agent updated successfully!");
+      cancelEditing();
+    } catch (err) {
+      console.error(err);
+      showMessage("❌ Failed to update agent.");
+    }
+  };
+
+  // Filter agents based on search input
+  const filteredAgents = agents.filter((agent) =>
+    agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    agent.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (agent.phone || "").includes(searchTerm)
+  );
+
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
-        <div className="flex flex-col h-full">
-          {/* Sidebar Header */}
-          <div className="p-6 border-b border-gray-100">
-            <h1 className="text-xl font-bold text-gray-800">LeadManager Pro</h1>
-            <p className="text-sm text-gray-500 mt-1">Admin Portal</p>
-          </div>
+    <div className="min-h-screen p-6 bg-gray-50">
+      <h2 className="text-3xl font-bold text-gray-800 mb-6">Agents</h2>
 
-          {/* User Info */}
-          <div className="p-6 border-b border-gray-100">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-                <span className="text-white font-semibold text-sm">{user?.name?.charAt(0)?.toUpperCase()}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-800 truncate">{user?.name}</p>
-                <p className="text-xs text-gray-500 truncate">Administrator</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2">
-            {actions.map((action, index) => (
-              <button
-                key={index}
-                onClick={() => { navigate(`/admin/${action.path}`); setSidebarOpen(false); }}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-200 ${location.pathname.includes(action.path) ? "bg-blue-50 text-blue-700 border border-blue-100" : "text-gray-600 hover:bg-gray-50 hover:text-gray-800"}`}
-              >
-                <div className={`p-2 rounded-lg ${location.pathname.includes(action.path) ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-500"}`}>
-                  {action.icon}
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{action.label}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{action.description}</p>
-                </div>
-              </button>
-            ))}
-          </nav>
+      {message && (
+        <div className="mb-4 p-3 rounded-lg text-sm bg-yellow-100 border border-yellow-300 text-center">
+          {message}
         </div>
+      )}
+
+      {/* Search input */}
+      <div className="mb-4 flex items-center gap-2">
+        <Search size={20} className="text-gray-400" />
+        <input
+          type="text"
+          placeholder="Search by name, email or phone..."
+          className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col lg:ml-0">
-        {/* Top Bar */}
-        <header className="bg-white shadow-sm border-b border-gray-200">
-          <div className="flex items-center justify-between px-6 py-4">
-            <div className="flex items-center space-x-4">
-              <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-              </button>
-              <h1 className="text-2xl font-bold text-gray-800">{getPageTitle()}</h1>
-            </div>
-            <div className="hidden sm:flex items-center space-x-4">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="text-sm text-gray-600">System Online</span>
-            </div>
-          </div>
-        </header>
-
-        {/* Dashboard Overview */}
-        {isOverview && (
-          <div className="flex-1 p-6">
-            <div className="max-w-6xl mx-auto">
-              {/* Welcome Card */}
-              <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-8 text-white mb-8 shadow-lg">
-                <h2 className="text-3xl font-bold mb-2">Welcome back, {user?.name}!</h2>
-                <p className="text-blue-100 text-lg">Ready to manage your team and lead distribution today?</p>
-              </div>
-
-              {/* Quick Actions */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                {actions.map((action, index) => (
-                  <div key={index} onClick={() => navigate(`/admin/${action.path}`)} className="group cursor-pointer bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-200 hover:border-blue-200 p-6">
-                    <div className="flex items-center space-x-4">
-                      <div className="bg-blue-50 text-blue-600 rounded-xl p-3 group-hover:bg-blue-600 group-hover:text-white transition-all">{action.icon}</div>
-                      <div>
-                        <h3 className="font-semibold text-gray-800 group-hover:text-blue-600">{action.label}</h3>
-                        <p className="text-sm text-gray-500 mt-1">{action.description}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Stats Overview */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Total Agents</p>
-                    <p className="text-2xl font-bold text-gray-800 mt-1">{stats.totalAgents}</p>
-                  </div>
-                  <div className="bg-green-50 text-green-600 p-3 rounded-lg"><Users size={20} /></div>
-                </div>
-
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Active Sheets</p>
-                    <p className="text-2xl font-bold text-gray-800 mt-1">{stats.activeSheets}</p>
-                  </div>
-                  <div className="bg-blue-50 text-blue-600 p-3 rounded-lg"><FileSpreadsheet size={20} /></div>
-                </div>
-
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Total Rows</p>
-                    <p className="text-2xl font-bold text-gray-800 mt-1">{stats.totalRows}</p>
-                  </div>
-                  <div className="bg-purple-50 text-purple-600 p-3 rounded-lg"><Upload size={20} /></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Nested Routes */}
-        {!isOverview && (
-          <div className="flex-1 p-6">
-            <div className="max-w-6xl mx-auto">
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                <Routes>
-                  <Route path="add-agent" element={<AddAgent token={user?.token} />} />
-                  <Route path="view-agents" element={<ViewAgents />} />
-                  <Route path="upload" element={<UploadSheet user={user} />} />
-                  <Route path="view-sheets" element={<ViewAllSheets user={user} />} />
-                </Routes>
-              </div>
-            </div>
-          </div>
-        )}
+      <div className="overflow-x-auto bg-white rounded-xl shadow border border-gray-200">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Name</th>
+              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Email</th>
+              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Phone</th>
+              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Password</th>
+              <th className="px-6 py-3 text-center text-sm font-medium text-gray-700">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {loading ? (
+              <tr>
+                <td colSpan={5} className="text-center py-10 text-gray-400">Loading...</td>
+              </tr>
+            ) : filteredAgents.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="text-center py-10 text-gray-400">No agents found.</td>
+              </tr>
+            ) : (
+              filteredAgents.map((agent) => (
+                <tr key={agent._id} className="hover:bg-gray-50 transition">
+                  <td className="px-6 py-4">
+                    {editingId === agent._id ? (
+                      <input
+                        type="text"
+                        className="w-full border p-1 rounded"
+                        value={editData.name}
+                        onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                      />
+                    ) : (
+                      agent.name
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    {editingId === agent._id ? (
+                      <input
+                        type="email"
+                        className="w-full border p-1 rounded"
+                        value={editData.email}
+                        onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+                      />
+                    ) : (
+                      agent.email
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    {editingId === agent._id ? (
+                      <input
+                        type="text"
+                        maxLength={10}
+                        className="w-full border p-1 rounded"
+                        value={editData.phone}
+                        onChange={(e) =>
+                          setEditData({ ...editData, phone: e.target.value.replace(/\D/g, '') })
+                        }
+                      />
+                    ) : (
+                      agent.phone || "-"
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    {editingId === agent._id ? (
+                      <input
+                        type="password"
+                        className="w-full border p-1 rounded"
+                        placeholder="Enter new password"
+                        value={editData.password || ""}
+                        onChange={(e) => setEditData({ ...editData, password: e.target.value })}
+                      />
+                    ) : (
+                      "••••••••"
+                    )}
+                  </td>
+                  <td className="px-6 py-4 flex justify-center gap-3">
+                    {editingId === agent._id ? (
+                      <>
+                        <button
+                          onClick={() => saveEdit(agent._id)}
+                          className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                        >
+                          <Check size={18} />
+                        </button>
+                        <button
+                          onClick={cancelEditing}
+                          className="p-2 bg-gray-300 text-black rounded-lg hover:bg-gray-400"
+                        >
+                          <X size={18} />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => startEditing(agent)}
+                          className="p-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600"
+                        >
+                          <Edit2 size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAgent(agent._id)}
+                          className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
-
-      {/* Overlay for mobile sidebar */}
-      {sidebarOpen && <div className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
     </div>
   );
 }
