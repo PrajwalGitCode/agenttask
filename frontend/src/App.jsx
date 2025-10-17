@@ -82,7 +82,7 @@ function App() {
 
           {/* Admin Routes */}
           <Route
-            path="/admin"
+            path="/admin/*"
             element={
               user?.role === "admin" ? <AdminDashboard user={user} /> : <Navigate to="/" replace />
             }

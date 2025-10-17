@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { getMySheet } from "../api"; // centralized api.js
+import { getMySheet } from "../api";
+import { FileText, Users, XCircle } from "lucide-react";
 
 export default function AgentViewSheet({ user }) {
   const [sheets, setSheets] = useState([]);
@@ -20,63 +21,81 @@ export default function AgentViewSheet({ user }) {
         setLoading(false);
       }
     };
-
     fetchMySheets();
   }, []);
 
   if (loading)
-    return <p className="text-center mt-8 text-gray-600">Loading your sheets...</p>;
+    return (
+      <p className="text-center mt-8 text-gray-500 flex items-center justify-center gap-2">
+        <FileText size={20} className="animate-spin text-gray-400" /> Loading your sheets...
+      </p>
+    );
 
   if (message)
-    return <p className="text-center mt-8 text-red-600">{message}</p>;
+    return (
+      <p className="text-center mt-8 text-red-600 flex items-center justify-center gap-2">
+        <XCircle size={20} /> {message}
+      </p>
+    );
 
   if (!sheets?.length)
-    return <p className="text-center mt-8 text-gray-500">No sheets assigned yet.</p>;
+    return (
+      <p className="text-center mt-8 text-gray-400 flex items-center justify-center gap-2">
+        <Users size={20} /> No sheets assigned yet.
+      </p>
+    );
 
   return (
-    <div className="max-w-5xl mx-auto bg-white mt-10 p-6 rounded-lg shadow">
-      <h2 className="text-2xl font-bold text-center text-blue-700 mb-6">
-        📄 My Assigned Sheets
+    <div className="max-w-6xl mx-auto mt-10 p-6 bg-white rounded-2xl shadow-lg">
+      <h2 className="text-3xl font-bold text-center text-blue-700 mb-8 flex items-center justify-center gap-3">
+        <FileText size={28} /> My Assigned Sheets
       </h2>
 
-      {sheets.map((sheet, i) => {
+      {sheets.map((sheet, idx) => {
         const totalItems = sheet?.data?.length || 0;
         return (
-          <div key={sheet._id || i} className="border rounded-lg mb-6 p-4 shadow-sm">
-            <div className="flex justify-between items-center mb-2">
-              <p className="font-semibold text-blue-700">Assigned Sheet #{i + 1}</p>
-              <p className="text-sm text-gray-500">
-                Uploaded: {sheet?.createdAt ? new Date(sheet.createdAt).toLocaleString() : "N/A"}
+          <div
+            key={sheet._id || idx}
+            className="border border-gray-200 rounded-xl mb-8 p-5 shadow-sm hover:shadow-md transition"
+          >
+            <div className="flex justify-between items-center mb-4">
+              <p className="text-xl font-semibold text-blue-700 flex items-center gap-2">
+                <Users size={20} /> Assigned Sheet #{idx + 1}
               </p>
+              {/* Optionally show uploaded date */}
             </div>
 
-            <p className="text-gray-500 text-sm mb-2">
-              Total items assigned: {totalItems}
+            <p className="text-gray-500 mb-3">
+              Total items assigned: <span className="font-medium">{totalItems}</span>
             </p>
 
             {totalItems > 0 ? (
-              <table className="w-full border-collapse border text-sm">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="border p-2">#</th>
-                    <th className="border p-2">First Name</th>
-                    <th className="border p-2">Phone</th>
-                    <th className="border p-2">Notes</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sheet.data?.map((item, idx) => (
-                    <tr key={idx}>
-                      <td className="border p-2">{idx + 1}</td>
-                      <td className="border p-2">{item.firstName || "-"}</td>
-                      <td className="border p-2">{item.phone || "-"}</td>
-                      <td className="border p-2">{item.notes || "-"}</td>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm border-collapse">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="border px-3 py-2 text-left">#</th>
+                      <th className="border px-3 py-2 text-left">First Name</th>
+                      <th className="border px-3 py-2 text-left">Phone</th>
+                      <th className="border px-3 py-2 text-left">Notes</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {sheet.data?.map((item, i) => (
+                      <tr key={i} className="hover:bg-gray-50 transition">
+                        <td className="border px-3 py-2">{i + 1}</td>
+                        <td className="border px-3 py-2">{item.firstName || "-"}</td>
+                        <td className="border px-3 py-2">{item.phone || "-"}</td>
+                        <td className="border px-3 py-2">{item.notes || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : (
-              <p className="text-gray-500 text-sm">No items in this sheet yet.</p>
+              <p className="text-gray-400 flex items-center gap-2 mt-2">
+                <XCircle size={18} /> No items in this sheet yet.
+              </p>
             )}
           </div>
         );

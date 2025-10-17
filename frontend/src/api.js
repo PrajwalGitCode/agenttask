@@ -25,7 +25,7 @@ export const deleteAgent = (id) => api.delete(`/admin/agents/${id}`);
 export const getMySheet = () => api.get("/sheets/mysheet");
 export const uploadSheet = (formData) =>
   api.post("/sheets/upload", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
+    headers: { "Content-Type": "multipart/form-data" }, 
   });
 // Get all agents
 export const getAllAgents = async (token) => {
